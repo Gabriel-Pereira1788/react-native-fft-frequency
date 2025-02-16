@@ -10,13 +10,17 @@ RCT_EXPORT_MODULE()
   return @[@"onFrequencyDetected"];
 }
 
+- (instancetype)init {
+  [self setupAudioSession];
+  [self requestPermission];
+  return self;
+}
+
 - (void)start {
-  if (self.isCapturing) {
+  if (self.isCapturing || self.permissionGranted == false) {
     return;
   }
   
-  [self setupAudioSession];
-  [self requestPermission];
   [self setupEQFilter];
   [self setupAudioEngine];
   [self setupFFT];
@@ -39,11 +43,9 @@ RCT_EXPORT_MODULE()
   [_session requestRecordPermission:^(BOOL granted) {
           dispatch_async(dispatch_get_main_queue(), ^{
               if (granted) {
-                  NSLog(@"Permissão concedida para gravação de áudio.");
-                  // Aqui você pode iniciar a gravação de áudio
+                  self.permissionGranted = true;
               } else {
-                  NSLog(@"Permissão negada para gravação de áudio.");
-                  // Mostre um alerta ou solicite novamente conforme necessário
+                  self.permissionGranted = false;
               }
           });
       }];

@@ -1,13 +1,17 @@
 package com.rnfftfrequency
 
+import android.Manifest
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.annotations.ReactModule
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 
 import com.facebook.react.bridge.ReadableMap
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import kotlin.math.*
 import org.jtransforms.fft.FloatFFT_1D
 
@@ -23,8 +27,19 @@ class RNFftFrequencyModule(reactContext: ReactApplicationContext) :
     private var highPassHz = 70.0
     private var lowPassHz = 400.0
 
+    init {
+        requestPermission()
+    }
     @SuppressLint("MissingPermission")
     override fun start() {
+
+        if (ContextCompat.checkSelfPermission(
+                reactApplicationContext,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
         if (isCapturing) {
             return
         }
@@ -77,6 +92,20 @@ class RNFftFrequencyModule(reactContext: ReactApplicationContext) :
         }.start()
     }
 
+     fun requestPermission() {
+        if (ContextCompat.checkSelfPermission(
+                reactApplicationContext,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                currentActivity!!,
+                arrayOf<String>(Manifest.permission.RECORD_AUDIO),
+                1
+            )
+
+        }
+    }
     override fun stop() {
         isCapturing = false
         audioRecord?.stop()

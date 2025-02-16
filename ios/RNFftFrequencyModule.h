@@ -10,6 +10,7 @@
   @property (nonatomic, assign) FFTSetup fftSetup;
   @property (nonatomic, assign) BOOL isCapturing;
   @property (nonatomic,assign) AVAudioSession *session;
+  @property (nonatomic,assign) bool permissionGranted;
   //JSI_VARIABLES
   @property (nonatomic,assign) UInt32  fftSize;
   @property (nonatomic,assign) double  highPassHz;
