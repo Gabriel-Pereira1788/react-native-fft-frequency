@@ -1,6 +1,6 @@
 buildscript {
   ext.getExtOrDefault = {name ->
-    return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties['FftFrequency_' + name]
+    return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties['RNFftFrequency_' + name]
   }
 
   repositories {
@@ -28,7 +28,7 @@ if (isNewArchitectureEnabled()) {
 }
 
 def getExtOrIntegerDefault(name) {
-  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["FftFrequency_" + name]).toInteger()
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["RNFftFrequency_" + name]).toInteger()
 }
 
 def supportsNamespace() {
@@ -42,7 +42,7 @@ def supportsNamespace() {
 
 android {
   if (supportsNamespace()) {
-    namespace "com.fftfrequency"
+    namespace "com.rnfftfrequency"
 
     sourceSets {
       main {
@@ -100,12 +100,13 @@ def kotlin_version = getExtOrDefault("kotlinVersion")
 dependencies {
   implementation "com.facebook.react:react-android"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+  implementation("com.github.wendykierp:JTransforms:3.1")
 }
 
 if (isNewArchitectureEnabled()) {
   react {
     jsRootDir = file("../src/")
-    libraryName = "FftFrequency"
-    codegenJavaPackageName = "com.fftfrequency"
+    libraryName = "RNFftFrequencyModule"
+    codegenJavaPackageName = "com.rnfftfrequency"
   }
 }
