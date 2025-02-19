@@ -11,6 +11,7 @@
   @property (nonatomic, assign) BOOL isCapturing;
   @property (nonatomic,assign) AVAudioSession *session;
   @property (nonatomic,assign) bool permissionGranted;
+  @property (nonatomic, assign) float calibrationOffset;
   //JSI_VARIABLES
   @property (nonatomic,assign) UInt32  fftSize;
   @property (nonatomic,assign) double  highPassHz;

@@ -1,6 +1,7 @@
 #import "RNFftFrequencyModule.h"
 #import <AVFoundation/AVFoundation.h>
 #import <Accelerate/Accelerate.h>
+#import "CoreAudioKit/CoreAudioKit.h"
 
 @implementation RNFftFrequencyModule
 RCT_EXPORT_MODULE()
@@ -13,13 +14,18 @@ RCT_EXPORT_MODULE()
 - (instancetype)init {
   [self setupAudioSession];
   [self requestPermission];
+  
+  self.calibrationOffset = 1.0f;
   return self;
 }
 
 - (void)start {
+  
   if (self.isCapturing || self.permissionGranted == false) {
+    NSLog(@"Entrou-aqui");
     return;
   }
+  NSLog(@"Entrou-aqui-2");
   
   [self setupEQFilter];
   [self setupAudioEngine];
@@ -41,62 +47,57 @@ RCT_EXPORT_MODULE()
 }
 - (void) requestPermission {
   [_session requestRecordPermission:^(BOOL granted) {
-          dispatch_async(dispatch_get_main_queue(), ^{
-              if (granted) {
-                  self.permissionGranted = true;
-              } else {
-                  self.permissionGranted = false;
-              }
-          });
-      }];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      if (granted) {
+        self.permissionGranted = true;
+      } else {
+        self.permissionGranted = false;
+      }
+    });
+  }];
 }
 
 - (void)setupAudioSession {
-    NSError *sessionError = nil;
-    self.session = [AVAudioSession sharedInstance];
-    
-    [self.session setCategory:AVAudioSessionCategoryPlayAndRecord error:&sessionError];
+  NSError *sessionError = nil;
+  self.session = [AVAudioSession sharedInstance];
+  
+  [self.session setCategory:AVAudioSessionCategoryPlayAndRecord error:&sessionError];
+  if (sessionError) {
+    NSLog(@"Erro on define session categories: %@", sessionError.localizedDescription);
+    return;
+  }
+  
+  [self.session setMode:AVAudioSessionModeDefault error:&sessionError];
+  if (sessionError) {
+    NSLog(@"Error on define session mode: %@", sessionError.localizedDescription);
+    return;
+  }
+  
+  Float64 preferredSampleRate = 44100;
+  if ([self.session respondsToSelector:@selector(setPreferredSampleRate:error:)]) {
+    [self.session setPreferredSampleRate:preferredSampleRate error:&sessionError];
     if (sessionError) {
-        NSLog(@"Erro on define session categories: %@", sessionError.localizedDescription);
-        return;
+      NSLog(@"Error on define preferred sample rate: %@", sessionError.localizedDescription);
+      sessionError = nil; // Ignora o erro e continua
     }
-    
-    [self.session setMode:AVAudioSessionModeDefault error:&sessionError];
-    if (sessionError) {
-        NSLog(@"Error on define session mode: %@", sessionError.localizedDescription);
-        return;
-    }
-    
-    Float64 preferredSampleRate = 44100;
-    if ([self.session respondsToSelector:@selector(setPreferredSampleRate:error:)]) {
-        [self.session setPreferredSampleRate:preferredSampleRate error:&sessionError];
-        if (sessionError) {
-            NSLog(@"Error on define preferred sample rate: %@", sessionError.localizedDescription);
-            sessionError = nil; // Ignora o erro e continua
-        }
-    }
-    
-    [self.session setActive:YES error:&sessionError];
-    if (sessionError) {
-        NSLog(@"Error on active session: %@", sessionError.localizedDescription);
-    }
+  }
+  
+  [self.session setActive:YES error:&sessionError];
+  if (sessionError) {
+    NSLog(@"Error on active session: %@", sessionError.localizedDescription);
+  }
 }
 
 - (void)setupEQFilter {
-  self.eqFilter = [[AVAudioUnitEQ alloc] initWithNumberOfBands:2];
+  self.eqFilter = [[AVAudioUnitEQ alloc] initWithNumberOfBands:1];
+  AVAudioUnitEQFilterParameters *bandPass = self.eqFilter.bands[0];
+  bandPass.filterType = AVAudioUnitEQFilterTypeBandPass;
+  bandPass.frequency = (_highPassHz + _lowPassHz) / 2.0;
+  bandPass.bandwidth = _lowPassHz - _highPassHz;
   
-  AVAudioUnitEQFilterParameters *highPass = self.eqFilter.bands[0];
-  highPass.filterType = AVAudioUnitEQFilterTypeHighPass;
-  highPass.frequency = _highPassHz;
-  highPass.bypass = NO;
-  highPass.bandwidth = 0.5;
-  
-  AVAudioUnitEQFilterParameters *lowPass = self.eqFilter.bands[1];
-  lowPass.filterType = AVAudioUnitEQFilterTypeLowPass;
-  lowPass.frequency = _lowPassHz;
-  lowPass.bypass = NO;
-  lowPass.bandwidth = 0.5;
+  bandPass.bypass = NO;
 }
+
 
 - (void)setupAudioEngine {
   self.audioEngine = [[AVAudioEngine alloc] init];
@@ -114,13 +115,12 @@ RCT_EXPORT_MODULE()
 }
 
 - (void)processAudioBuffer:(AVAudioPCMBuffer *)buffer format:(AVAudioFormat *)format {
-  
   if (buffer.frameLength < _fftSize) return;
   
   float *data = buffer.floatChannelData[0];
   
   float window[_fftSize];
-  vDSP_blkman_window(window, _fftSize, 0);
+  vDSP_hann_window(window, _fftSize, vDSP_HANN_NORM);
   float windowedData[_fftSize];
   vDSP_vmul(data, 1, window, 1, windowedData, 1, _fftSize);
   
@@ -131,53 +131,86 @@ RCT_EXPORT_MODULE()
     return;
   }
   
-
-  DSPComplex *complexBuffer = (DSPComplex *)malloc(_fftSize * sizeof(DSPComplex));
-  for (int i = 0; i < _fftSize; i++) {
-    complexBuffer[i].real = windowedData[i];
-    complexBuffer[i].imag = 0;
-  }
+  float frequency = [self detectPitchWithBuffer:windowedData
+                                     bufferSize:_fftSize
+                                     sampleRate:format.sampleRate];
   
-  DSPSplitComplex split;
-  split.realp = (float *)malloc(_fftSize/2 * sizeof(float));
-  split.imagp = (float *)malloc(_fftSize/2 * sizeof(float));
-  vDSP_ctoz(complexBuffer, 2, &split, 1, _fftSize/2);
-  
-  vDSP_fft_zrip(self.fftSetup, &split, 1, log2f(_fftSize), FFT_FORWARD);
-  
-  float magnitudes[_fftSize/2];
-  vDSP_zvabs(&split, 1, magnitudes, 1, _fftSize/2);
-  
-  float maxMag = 0;
-  vDSP_maxv(magnitudes, 1, &maxMag, _fftSize/2);
-  
-  int maxIndex = 0;
-  for (int i = 0; i < _fftSize/2; i++) {
-    if (magnitudes[i] == maxMag) {
-      maxIndex = i;
-      break;
-    }
-  }
-  
-  float refinedIndex = maxIndex;
-  if (maxIndex > 0 && maxIndex < (_fftSize/2 - 1)) {
-    float magLeft = magnitudes[maxIndex - 1];
-    float magRight = magnitudes[maxIndex + 1];
-    float delta = 0.5f * (magRight - magLeft) / (2 * maxMag - magLeft - magRight);
-    refinedIndex = maxIndex + delta;
-  }
-  
-  float sampleRate = format.sampleRate;
-  float frequency = refinedIndex * sampleRate / _fftSize;
-  
+  frequency -= self.calibrationOffset;
+  NSLog(@"Frequency: %f",frequency);
   if (frequency >= _highPassHz && frequency <= _lowPassHz) {
     [self sendEventWithName:@"onFrequencyDetected" body:@(frequency)];
   }
-  
-  free(complexBuffer);
-  free(split.realp);
-  free(split.imagp);
 }
+
+- (float)detectPitchWithBuffer:(float *)buffer
+                    bufferSize:(int)bufferSize
+                    sampleRate:(float)sampleRate {
+  int tauMax = bufferSize / 2;
+  
+  float *d = (float *)malloc(sizeof(float) * tauMax);
+  float *cmndf = (float *)malloc(sizeof(float) * tauMax);
+  
+  d[0] = 0;
+  for (int tau = 1; tau < tauMax; tau++) {
+    float sum = 0;
+    for (int j = 0; j < bufferSize - tau; j++) {
+      float diff = buffer[j] - buffer[j + tau];
+      sum += diff * diff;
+    }
+    d[tau] = sum;
+  }
+  
+  cmndf[0] = 1;
+  float runningSum = 0;
+  for (int tau = 1; tau < tauMax; tau++) {
+    runningSum += d[tau];
+    cmndf[tau] = (runningSum > 0) ? (d[tau] * tau / runningSum) : 1.0f;
+  }
+  
+  float threshold = 0.15f;
+  int tauEstimate = -1;
+  
+  for (int tau = 1; tau < tauMax; tau++) {
+    if (cmndf[tau] < threshold) {
+      while (tau + 1 < tauMax && cmndf[tau + 1] < cmndf[tau]) {
+        tau++;
+      }
+      tauEstimate = tau;
+      break;
+    }
+  }
+
+  if (tauEstimate < 0) {
+    float minCMND = FLT_MAX;
+    for (int tau = 1; tau < tauMax; tau++) {
+      if (cmndf[tau] < minCMND) {
+        minCMND = cmndf[tau];
+        tauEstimate = tau;
+      }
+    }
+  }
+  
+  float pitch = 0;
+  if (tauEstimate > 0 && tauEstimate < tauMax - 1) {
+
+    float s0 = cmndf[tauEstimate - 1];
+    float s1 = cmndf[tauEstimate];
+    float s2 = cmndf[tauEstimate + 1];
+    float denominator = (2 * s1 - s2 - s0);
+    float betterTau = (denominator != 0) ? tauEstimate + (s2 - s0) / (2 * denominator) : tauEstimate;
+    pitch = sampleRate / betterTau;
+  } else if (tauEstimate > 0) {
+    pitch = sampleRate / tauEstimate;
+  }
+  
+  free(d);
+  free(cmndf);
+  
+  return pitch;
+}
+
+
+
 
 - (void)removeListeners {
   [self stopObserving];
@@ -192,37 +225,37 @@ RCT_EXPORT_MODULE()
 
 #pragma clang diagnostic ignored "-Wnonnull"
 - (void)stop {
-    if (!self.isCapturing) {
-        return; // Já está parado
-    }
-
-    [self.audioEngine stop];
-    [self.audioEngine reset];
-
-    [self.eqFilter removeTapOnBus:0];
-
-    
-    if (self.fftSetup != nil) {
-        vDSP_destroy_fftsetup(self.fftSetup);
-        self.fftSetup = nil;
-    }
-
-    self.audioEngine = nil;
-    self.eqFilter = nil;
-
-    NSError *error = nil;
-    [self.session setActive:NO error:&error];
-    if (error) {
-        NSLog(@"Erro ao desativar AVAudioSession: %@", error.localizedDescription);
-    }
-
-    self.isCapturing = NO;
+  if (!self.isCapturing) {
+    return;
+  }
+  
+  [self.audioEngine stop];
+  [self.audioEngine reset];
+  
+  [self.eqFilter removeTapOnBus:0];
+  
+  
+  if (self.fftSetup != nil) {
+    vDSP_destroy_fftsetup(self.fftSetup);
+    self.fftSetup = nil;
+  }
+  
+  self.audioEngine = nil;
+  self.eqFilter = nil;
+  
+  NSError *error = nil;
+  [self.session setActive:NO error:&error];
+  if (error) {
+    NSLog(@"Erro ao desativar AVAudioSession: %@", error.localizedDescription);
+  }
+  
+  self.isCapturing = NO;
 }
 
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
-    (const facebook::react::ObjCTurboModule::InitParams &)params
+(const facebook::react::ObjCTurboModule::InitParams &)params
 {
-    return std::make_shared<facebook::react::NativeFftFrequencyModuleSpecJSI>(params);
+  return std::make_shared<facebook::react::NativeFftFrequencyModuleSpecJSI>(params);
 }
 
 @end

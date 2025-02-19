@@ -43,8 +43,7 @@ class RNFftFrequencyModule(reactContext: ReactApplicationContext) :
         if (isCapturing) {
             return
         }
-
-        // Configura o AudioRecord para captura de áudio
+        
         val bufferSize = AudioRecord.getMinBufferSize(
             sampleRate,
             AudioFormat.CHANNEL_IN_MONO,
