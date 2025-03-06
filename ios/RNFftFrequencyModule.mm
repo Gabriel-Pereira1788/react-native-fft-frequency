@@ -100,14 +100,35 @@ RCT_EXPORT_MODULE()
 
 
 - (void)setupAudioEngine {
-  self.audioEngine = [[AVAudioEngine alloc] init];
-  AVAudioInputNode *inputNode = [self.audioEngine inputNode];
-  AVAudioFormat *format = [inputNode inputFormatForBus:0];
-  
-  [self.audioEngine attachNode:self.eqFilter];
-  [self.audioEngine connect:inputNode to:self.eqFilter format:format];
-  [self.audioEngine connect:self.eqFilter to:[self.audioEngine mainMixerNode] format:format];
+    @try {
+        self.audioEngine = [[AVAudioEngine alloc] init];
+        if (!self.audioEngine) {
+            NSLog(@"Erro: Falha ao inicializar AVAudioEngine");
+            return;
+        }
+
+        AVAudioInputNode *inputNode = [self.audioEngine inputNode];
+        AVAudioFormat *format = [inputNode inputFormatForBus:0];
+
+        if (!inputNode || !format) {
+            NSLog(@"Erro: Falha ao obter o nó de entrada ou o formato de áudio.");
+            return;
+        }
+
+        if (!self.eqFilter) {
+            NSLog(@"Erro: eqFilter não foi inicializado.");
+            return;
+        }
+
+        [self.audioEngine attachNode:self.eqFilter];
+        [self.audioEngine connect:inputNode to:self.eqFilter format:format];
+        [self.audioEngine connect:self.eqFilter to:[self.audioEngine mainMixerNode] format:format];
+
+    } @catch (NSException *exception) {
+        NSLog(@"Exceção ao configurar o motor de áudio: %@, %@", exception.name, exception.reason);
+    }
 }
+
 
 - (void)setupFFT {
   
