@@ -8,6 +8,10 @@ export function useFrequency() {
     rnfftFrequency.addListener('onFrequencyDetected', (_frequency: number) => {
       setFrequency(_frequency);
     });
+
+    return () => {
+      rnfftFrequency.removeListeners('onFrequencyDetected');
+    }
   }, []);
 
   return frequency;

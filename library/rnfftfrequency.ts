@@ -22,6 +22,10 @@ class RNFFTFrequency {
   ) {
     fftAudioEmitter.addListener(eventName, listener);
   }
+
+  removeListeners(eventName: 'onFrequencyDetected') {
+    fftAudioEmitter.removeAllListeners(eventName);
+  }
 }
 
 const rnfftFrequency = new RNFFTFrequency();
