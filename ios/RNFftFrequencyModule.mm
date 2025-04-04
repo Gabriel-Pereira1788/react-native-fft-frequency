@@ -22,10 +22,10 @@ RCT_EXPORT_MODULE()
 - (void)start {
   
   if (self.isCapturing || self.permissionGranted == false) {
-    NSLog(@"Entrou-aqui");
+    
     return;
   }
-  NSLog(@"Entrou-aqui-2");
+
   
   [self setupEQFilter];
   [self setupAudioEngine];
@@ -103,7 +103,7 @@ RCT_EXPORT_MODULE()
     @try {
         self.audioEngine = [[AVAudioEngine alloc] init];
         if (!self.audioEngine) {
-            NSLog(@"Erro: Falha ao inicializar AVAudioEngine");
+            NSLog(@"Erro: Errpr on init AVAudioEngine");
             return;
         }
 
@@ -111,12 +111,12 @@ RCT_EXPORT_MODULE()
         AVAudioFormat *format = [inputNode inputFormatForBus:0];
 
         if (!inputNode || !format) {
-            NSLog(@"Erro: Falha ao obter o nó de entrada ou o formato de áudio.");
+            NSLog(@"Erro: Error on node entering.");
             return;
         }
 
         if (!self.eqFilter) {
-            NSLog(@"Erro: eqFilter não foi inicializado.");
+            NSLog(@"Erro: eqFilter no initialized.");
             return;
         }
 
@@ -125,7 +125,7 @@ RCT_EXPORT_MODULE()
         [self.audioEngine connect:self.eqFilter to:[self.audioEngine mainMixerNode] format:format];
 
     } @catch (NSException *exception) {
-        NSLog(@"Exceção ao configurar o motor de áudio: %@, %@", exception.name, exception.reason);
+        NSLog(@"Exception configure audio engine: %@, %@", exception.name, exception.reason);
     }
 }
 
@@ -157,7 +157,6 @@ RCT_EXPORT_MODULE()
                                      sampleRate:format.sampleRate];
   
   frequency -= self.calibrationOffset;
-  NSLog(@"Frequency: %f",frequency);
   if (frequency >= _highPassHz && frequency <= _lowPassHz) {
     [self sendEventWithName:@"onFrequencyDetected" body:@(frequency)];
   }

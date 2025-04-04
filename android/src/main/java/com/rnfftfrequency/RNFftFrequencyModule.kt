@@ -44,7 +44,7 @@ class RNFftFrequencyModule(reactContext: ReactApplicationContext) :
         Manifest.permission.RECORD_AUDIO
       ) != PackageManager.PERMISSION_GRANTED
     ) {
-      Log.d("CAIU-AQUI","PERMISSION");
+      
       return
     }
     if (isCapturing) {
@@ -71,7 +71,7 @@ class RNFftFrequencyModule(reactContext: ReactApplicationContext) :
     Thread {
       val buffer = ShortArray(fftSize)
       val window = hannWindow(fftSize)
-      Log.d("CAIU-AQUI","THREAD-1 $isCapturing");
+    
       while (isCapturing) {
         val bytesRead = audioRecord?.read(buffer, 0, fftSize) ?: 0
 
