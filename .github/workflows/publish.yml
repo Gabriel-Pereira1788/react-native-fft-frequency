@@ -7,7 +7,6 @@ on:
       - 'package.json'
       - 'src/**'
       - 'lib/**'
-      - '.github/workflows/**'
 
 jobs:
   publish:
