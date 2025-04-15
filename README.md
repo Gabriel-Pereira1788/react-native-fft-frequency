@@ -39,17 +39,17 @@ No additional setup required for Android.
 ### Basic Example
 
 ```typescript
-import { useFrequency, RNFFTFrequency } from 'react-native-fft-frequency';
+import { useFrequency, rnfftFrequency } from 'react-native-fft-frequency';
 
 function App() {
   const frequency = useFrequency();
 
   const startListening = () => {
-    RNFFTFrequency.start();
+    rnfftFrequency.start();
   };
 
   const stopListening = () => {
-    RNFFTFrequency.stop();
+    rnfftFrequency.stop();
   };
 
   return (
@@ -67,7 +67,7 @@ function App() {
 You can customize the FFT parameters using the `setConfiguration` method:
 
 ```typescript
-RNFFTFrequency.setConfiguration({
+rnfftFrequency.setConfiguration({
   fftSize: 4096,        // FFT size (power of 2)
   highPassHz: 70.0,     // High-pass filter frequency
   lowPassHz: 400.0,     // Low-pass filter frequency
