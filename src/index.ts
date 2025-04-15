@@ -1,3 +1,3 @@
-import NativeFftFrequencyModule from './NativeFftFrequencyModule';
+import { rnfftFrequency, useFrequency } from './library';
 
-export default NativeFftFrequencyModule;
+export { rnfftFrequency, useFrequency };

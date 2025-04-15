@@ -5,7 +5,13 @@ module.exports = {
   dependency: {
     platforms: {
       android: {
-        cmakeListsPath: 'generated/jni/CMakeLists.txt',
+        sourceDir: './android',
+        packageImportPath: 'import com.rnfftfrequency.RNFftFrequencyModule;',
+        packageInstance: 'new RNFftFrequencyModule()',
+      },
+      ios: {
+        sourceDir: './ios',
+        podspecPath: './RNFftFrequencyModule.podspec',
       },
     },
   },

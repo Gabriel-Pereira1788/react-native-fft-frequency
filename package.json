@@ -1,9 +1,12 @@
 {
   "name": "react-native-fft-frequency",
-  "version": "0.1.0",
-  "description": "SImple audio frequency",
-  "source": "./index.ts",
-  "main": "./index.ts",
+  "version": "1.0.2",
+  "description": "Simple audio frequency",
+  "main": "./lib/commonjs/index.js",
+  "module": "./lib/module/index.js",
+  "types": "./lib/typescript/commonjs/index.d.ts",
+  "react-native": "./src/index.ts",
+  "source": "./src/index.ts",
   "files": [
     "src",
     "lib",
@@ -151,20 +154,38 @@
       [
         "commonjs",
         {
-          "esm": true
+          "esm": true,
+          "include": [
+            "src/**/*"
+          ],
+          "copy": [
+            "src/**/*.d.ts"
+          ]
         }
       ],
       [
         "module",
         {
-          "esm": true
+          "esm": true,
+          "include": [
+            "src/**/*"
+          ],
+          "copy": [
+            "src/**/*.d.ts"
+          ]
         }
       ],
       [
         "typescript",
         {
           "project": "tsconfig.build.json",
-          "esm": true
+          "esm": true,
+          "include": [
+            "src/**/*"
+          ],
+          "copy": [
+            "src/**/*.d.ts"
+          ]
         }
       ]
     ]
@@ -172,7 +193,7 @@
   "codegenConfig": {
     "name": "RNFftFrequencyModule",
     "type": "modules",
-    "jsSrcsDir": "src",
+    "jsSrcsDir": "src/specs",
     "outputDir": {
       "ios": "ios/generated",
       "android": "android/generated"

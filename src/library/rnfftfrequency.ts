@@ -1,7 +1,7 @@
 import NativeFftFrequencyModule, {
   fftAudioEmitter,
   type FFTConfiguration,
-} from '../src/NativeFftFrequencyModule';
+} from '../specs/NativeFftFrequencyModule';
 
 class RNFFTFrequency {
   start() {
