@@ -1,0 +1,33 @@
+name: Publish to npm
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'package.json'
+      - 'src/**'
+      - 'lib/**'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'yarn'
+      
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      
+      - name: Build package
+        run: yarn prepare
+      
+      - name: Publish to npm
+        run: yarn publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 
