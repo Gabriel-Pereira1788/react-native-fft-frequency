@@ -1,7 +1,7 @@
 {
   "name": "react-native-fft-frequency",
   "version": "1.0.2",
-  "description": "Simple audio frequency",
+  "description": "Simple audio frequency fft",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
   "types": "./lib/typescript/commonjs/index.d.ts",
