@@ -11,7 +11,7 @@ export function useFrequency() {
 
     return () => {
       rnfftFrequency.removeListeners('onFrequencyDetected');
-    }
+    };
   }, []);
 
   return frequency;
