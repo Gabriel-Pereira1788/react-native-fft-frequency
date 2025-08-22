@@ -1,6 +1,6 @@
 {
   "name": "react-native-fft-frequency",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A powerful and efficient React Native library for real-time audio frequency analysis using Fast Fourier Transform (FFT). Ideal for audio visualization, spectrum analyzers, and music applications.",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
